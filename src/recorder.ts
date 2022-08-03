@@ -579,6 +579,24 @@ class Recorder {
     }
 
     /**
+     * 清除缓存
+     */
+    clearCache(): void {
+        this.lBuffer.length = 0;
+        this.rBuffer.length = 0;
+        this.size = 0;
+        this.fileSize = 0;
+        this.PCM = null;
+        this.tempPCM = []
+        this.audioInput = null;
+        this.duration = 0;
+        this.ispause = false;
+        this.isplaying = false;
+        this.playTime = 0;
+        this.totalPlayTime = 0;
+    }
+
+    /**
      * 清空状态，重新开始录音（变量初始化）
      *
      * @private

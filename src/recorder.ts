@@ -579,7 +579,7 @@ class Recorder {
     }
 
     /**
-     * 清除缓存
+     * 外部方法清除缓存 用于实时录音获取时内存不爆
      */
     clearCache(): void {
         this.lBuffer.length = 0;
@@ -588,12 +588,7 @@ class Recorder {
         this.fileSize = 0;
         this.PCM = null;
         this.tempPCM = []
-        this.audioInput = null;
         this.duration = 0;
-        this.ispause = false;
-        this.isplaying = false;
-        this.playTime = 0;
-        this.totalPlayTime = 0;
     }
 
     /**
@@ -694,7 +689,7 @@ class Recorder {
      */
     static compress(data, inputSampleRate: number, outputSampleRate: number) {
         // 压缩，根据采样率进行压缩
-        let rate = inputSampleRate / outputSampleRate,
+        let rate =  Math.round(inputSampleRate / outputSampleRate),
             compression = Math.max(rate, 1),
             lData = data.left,
             rData = data.right,

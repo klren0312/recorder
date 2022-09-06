@@ -1,8 +1,14 @@
 declare let window: any;
-declare let Math: any;
-declare let document: any;
-declare let navigator: any;
-declare let Promise: any;
+declare let Math: Math;
+declare let document: Document;
+declare let navigator: NavigatorNew;
+declare let Promise: PromiseConstructor;
+
+interface NavigatorNew extends Navigator {
+    getUserMedia?: any,
+    webkitGetUserMedia?: any,
+    mozGetUserMedia?: any,
+}
 
 // 构造函数参数格式
 interface recorderConfig {
@@ -24,7 +30,7 @@ class Recorder {
     private isrecording: boolean;               // 是否正在录音
     private isplaying: boolean = false;         // 是否正在播放
     private ispause: boolean;                   // 是否是暂停
-    private context: any;
+    private context: AudioContext;
     private config: recorderConfig;             // 配置
     private size: number;                       // 录音文件总长度
     private lBuffer: Array<Float32Array> = [];  // pcm音频数据搜集器(左声道)
@@ -45,7 +51,7 @@ class Recorder {
     private playTime: number = 0;               // 记录录音播放时长
     private totalPlayTime: number = 0;          // 音频播放总长度
     private offset: number = 0;                 // 边录边转，记录外部的获取偏移位置
-    private stream: any;                        // 流
+    private stream: MediaStream;                        // 流
 
     public fileSize: number = 0;                // 录音大小，byte为单位
     public duration: number;                    // 录音时长
@@ -101,14 +107,14 @@ class Recorder {
             // 关闭先前的录音实例，因为前次的实例会缓存少量前次的录音数据
             this.destroy();
         }
-        this.context = new (window.AudioContext || window.webkitAudioContext)();
+        this.context = new AudioContext();
         
         this.analyser = this.context.createAnalyser();  // 录音分析节点
         this.analyser.fftSize = 2048;                   // 表示存储频域的大小
 
         // 第一个参数表示收集采样的大小，采集完这么多后会触发 onaudioprocess 接口一次，该值一般为1024,2048,4096等，一般就设置为4096
         // 第二，三个参数分别是输入的声道数和输出的声道数，保持一致即可。
-        let createScript = this.context.createScriptProcessor || this.context.createJavaScriptNode;
+        let createScript = this.context.createScriptProcessor;
         this.recorder = createScript.apply(this.context, [4096, this.config.numChannels, this.config.numChannels]);
 
         // 音频采集
@@ -172,7 +178,7 @@ class Recorder {
      * @returns {Promise<{}>}
      * @memberof Recorder
      */
-    start(): Promise<{}> {
+    start(constraints?: MediaStreamConstraints): Promise<void | MediaStream> {
         if (this.isrecording) {
             // 正在录音，则不允许
             return;
@@ -181,10 +187,12 @@ class Recorder {
         this.clear();
         this.initRecorder();
         this.isrecording = true;
-
-        return navigator.mediaDevices.getUserMedia({
-            audio: true
-        }).then(stream => {
+        if (!constraints) {
+            constraints = {
+                audio: true
+            }
+        }
+        return navigator.mediaDevices.getUserMedia(constraints).then(stream => {
             // audioInput表示音频源节点
             // stream是通过navigator.getUserMedia获取的外部（如麦克风）stream音频输出，对于这就是输入
             this.audioInput = this.context.createMediaStreamSource(stream);
@@ -369,7 +377,7 @@ class Recorder {
             // 记录当前的时间戳，以备暂停时使用
             this.playStamp = this.context.currentTime;
         }, function(e) {
-            Recorder.throwError(e);
+            Recorder.throwError(e.message);
         });
     }
 
@@ -553,7 +561,7 @@ class Recorder {
             return this.context.close();
         } else {
             return new Promise((resolve) => {
-                resolve();
+                resolve(0);
             });
         }
     }
@@ -831,10 +839,6 @@ class Recorder {
 
     // getUserMedia 版本兼容
     static initUserMedia() {
-        if (navigator.mediaDevices === undefined) {
-            navigator.mediaDevices = {};
-        }
-        
         if (navigator.mediaDevices.getUserMedia === undefined) {
             navigator.mediaDevices.getUserMedia = function(constraints) {
                 let getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
@@ -854,10 +858,10 @@ class Recorder {
      * 在没有权限的时候，让弹出获取麦克风弹窗
      *
      * @static
-     * @returns {Promise<{}>}
+     * @returns {Promise<void | {}>}
      * @memberof Recorder
      */
-    static getPermission(): Promise<{}> {
+    static getPermission(): Promise<void | {}> {
         this.initUserMedia();
 
         return navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {

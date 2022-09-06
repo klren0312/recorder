@@ -5,9 +5,9 @@ declare let navigator: NavigatorNew;
 declare let Promise: PromiseConstructor;
 
 interface NavigatorNew extends Navigator {
-    getUserMedia?: any,
-    webkitGetUserMedia?: any,
-    mozGetUserMedia?: any,
+    getUserMedia: any,
+    webkitGetUserMedia: any,
+    mozGetUserMedia: any,
 }
 
 // 构造函数参数格式
@@ -533,7 +533,7 @@ class Recorder {
      * 销毁录音对象
      * @memberof Recorder
      */
-    destroy(): Promise<{}> {
+    destroy(): Promise<any> {
         // 结束流
         this.stopStream();
 
